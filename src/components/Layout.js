@@ -2,6 +2,8 @@ import styles from '../styles/components/Layout.module.css';
 
 import { Fragment } from 'react';
 import { Outlet, Link } from 'react-router-dom';
+import { useSignOut } from '@nhost/react'
+import { useUserId } from '@nhost/react'
 import { Menu, Transition } from '@headlessui/react';
 import {
   ChevronDownIcon,
@@ -10,9 +12,29 @@ import {
   UserIcon,
 } from '@heroicons/react/outline';
 import Avatar from './Avatar';
+import { gql, useQuery } from '@apollo/client'
+
+const GET_USER_QUERY = gql`
+  query GetUser($id: uuid!) {
+    user(id: $id) {
+      id
+      email
+      displayName
+      metadata
+      avatarUrl
+    }
+  }
+`
 
 const Layout = () => {
-  const user = null;
+  const { signOut } = useSignOut()
+  const id = useUserId()
+
+  const { loading, error, data } = useQuery(GET_USER_QUERY, {
+    variables: { id },
+    skip: !id
+  })
+  const user = data?.user
 
   const menuItems = [
     {
@@ -27,7 +49,7 @@ const Layout = () => {
     },
     {
       label: 'Logout',
-      onClick: () => null,
+      onClick: signOut,
       icon: LogoutIcon,
     },
   ];
@@ -90,7 +112,8 @@ const Layout = () => {
 
       <main className={styles.main}>
         <div className={styles['main-container']}>
-          <Outlet context={{ user }} />
+          {error ? (<p>Something went wrong. Try to refresh the page.</p>) 
+          : !loading ? (<Outlet context={{ user }} />) : null}
         </div>
       </main>
     </div>
